@@ -94,15 +94,52 @@ export default function Home() {
   const [formNote, setFormNote] = useState(
     "We'll confirm your slot by phone, usually within a few hours during OPD hours."
   );
+async function handleSubmit(e) {
+  e.preventDefault();
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    const name = e.target.fname.value.trim();
-    setFormNote(
-      `Thank you, ${name || 'there'} — our desk will call you shortly to confirm your slot. This is a demo form; connect it to your booking system to go live.`
+  const form = e.target;
+
+  const fullName = form.fname.value.trim();
+  const phone = form.phone.value.trim();
+  const department = form.dept.value;
+  const message = form.msg.value.trim();
+
+  try {
+    const response = await fetch(
+      'https://intuitive-kindness-production-67a8.up.railway.app/api/appointments',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName,
+          phone,
+          department,
+          message,
+        }),
+      }
     );
-    e.target.reset();
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to book appointment');
+    }
+
+    setFormNote(
+      'Appointment request received. Our desk will call you shortly to confirm your slot.'
+    );
+
+    form.reset();
+  } catch (error) {
+    console.error('Appointment booking error:', error);
+
+    setFormNote(
+      'Sorry, we could not submit your appointment. Please try again.'
+    );
   }
+}
 
   return (
     <>
@@ -143,7 +180,6 @@ export default function Home() {
       </header>
 
       <main id="top">
-        {/* HERO */}
         <section className="hero">
           <div className="wrap">
             <div>
@@ -181,7 +217,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* STATS */}
         <div className="stats">
           <div className="wrap">
             <div className="stat"><b>18</b><span>Years serving Alwar families</span></div>
@@ -191,7 +226,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ABOUT */}
         <section className="about" id="about">
           <div className="wrap about-grid">
             <div className="figure">
@@ -225,7 +259,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* DEPARTMENTS */}
         <section id="departments">
           <div className="wrap">
             <div className="section-head">
@@ -254,7 +287,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* DOCTORS */}
         <section className="about" id="doctors">
           <div className="wrap">
             <div className="section-head">
@@ -283,7 +315,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* PROCESS */}
         <section className="process" id="process">
           <div className="wrap">
             <div className="section-head">
@@ -316,7 +347,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* TESTIMONIALS */}
         <section id="reviews">
           <div className="wrap">
             <div className="section-head">
@@ -346,7 +376,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CONTACT */}
         <section className="contact" id="contact">
           <div className="wrap">
             <div className="section-head">
