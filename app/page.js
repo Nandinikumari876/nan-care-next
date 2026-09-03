@@ -94,6 +94,7 @@ export default function Home() {
   const [formNote, setFormNote] = useState(
     "We'll confirm your slot by phone, usually within a few hours during OPD hours."
   );
+  const [formStatus, setFormStatus] = useState(null); // null | 'success' | 'error'
 async function handleSubmit(e) {
   e.preventDefault();
 
@@ -127,6 +128,7 @@ async function handleSubmit(e) {
       throw new Error(data.error || 'Failed to book appointment');
     }
 
+    setFormStatus('success');
     setFormNote(
       'Appointment request received. Our desk will call you shortly to confirm your slot.'
     );
@@ -135,6 +137,7 @@ async function handleSubmit(e) {
   } catch (error) {
     console.error('Appointment booking error:', error);
 
+    setFormStatus('error');
     setFormNote(
       'Sorry, we could not submit your appointment. Please try again.'
     );
@@ -442,7 +445,11 @@ async function handleSubmit(e) {
                   <textarea id="msg" name="msg" placeholder="Preferred dates, symptoms, or a doctor's name"></textarea>
                 </div>
                 <button type="submit" className="btn btn-primary">Request appointment</button>
-                <p className="form-note">{formNote}</p>
+                {formStatus && (
+                  <p className={`form-status ${formStatus === 'success' ? 'is-success' : 'is-error'}`}>
+                    {formStatus === 'success' ? '✓ ' : ''}{formNote}
+                  </p>
+                )}
               </form>
             </div>
           </div>
