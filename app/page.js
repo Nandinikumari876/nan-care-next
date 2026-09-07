@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Logo from '../components/Logo';
+import { subscribeToPush } from '../lib/push';
 
 const departments = [
   {
@@ -99,6 +100,12 @@ async function handleSubmit(e) {
   e.preventDefault();
 
   const form = e.target;
+  setFormNote(
+  'Appointment request received. Our desk will call you shortly to confirm your slot.'
+);
+subscribeToPush(data.appointment._id);
+
+form.reset();
 
   const fullName = form.fname.value.trim();
   const phone = form.phone.value.trim();
