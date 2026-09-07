@@ -100,13 +100,6 @@ async function handleSubmit(e) {
   e.preventDefault();
 
   const form = e.target;
-  setFormNote(
-  'Appointment request received. Our desk will call you shortly to confirm your slot.'
-);
-subscribeToPush(data.appointment._id);
-
-form.reset();
-
   const fullName = form.fname.value.trim();
   const phone = form.phone.value.trim();
   const department = form.dept.value;
@@ -140,6 +133,11 @@ form.reset();
       'Appointment request received. Our desk will call you shortly to confirm your slot.'
     );
 
+    // backend response se appointment id nikal ke push subscribe karo
+    if (data.appointment && data.appointment._id) {
+      subscribeToPush(data.appointment._id);
+    }
+
     form.reset();
   } catch (error) {
     console.error('Appointment booking error:', error);
@@ -150,7 +148,6 @@ form.reset();
     );
   }
 }
-
   return (
     <>
       <div className="topstrip">
