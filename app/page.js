@@ -107,7 +107,7 @@ async function handleSubmit(e) {
 
   try {
     const response = await fetch(
-      'https://intuitive-kindness-production-67a8.up.railway.app/api/appointments',
+      `${process.env.NEXT_PUBLIC_API_URL}/api/appointments`,
       {
         method: 'POST',
         headers: {
