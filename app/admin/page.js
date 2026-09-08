@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
+import { subscribeToPush } from '../../lib/push';
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminPage() {
@@ -52,11 +52,12 @@ export default function AdminPage() {
     }
   }
 
-  function handleLogin(e) {
+ function handleLogin(e) {
     e.preventDefault();
     if (!adminKey.trim()) return;
     sessionStorage.setItem('nanCareAdminKey', adminKey.trim());
     setAuthed(true);
+    subscribeToPush(null, true); // NEW — subscribe this browser as admin
   }
 
   function handleLogout() {
