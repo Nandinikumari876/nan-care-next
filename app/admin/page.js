@@ -57,7 +57,9 @@ export default function AdminPage() {
     if (!adminKey.trim()) return;
     sessionStorage.setItem('nanCareAdminKey', adminKey.trim());
     setAuthed(true);
-    subscribeToPush(null, true); // NEW — subscribe this browser as admin
+    subscribeToPush(null, true).catch((err) => {
+  console.error('Admin push subscribe failed:', err);
+}); // NEW — subscribe this browser as admin
   }
 
   function handleLogout() {
