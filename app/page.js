@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Logo from '../components/Logo';
+import { useRouter } from 'next/navigation';
+import { getToken } from '../lib/auth';
 import { subscribeToPush } from '../lib/push';
 
 const departments = [
@@ -91,6 +93,7 @@ const doctors = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   const [navOpen, setNavOpen] = useState(false);
   const [formNote, setFormNote] = useState(
     "We'll confirm your slot by phone, usually within a few hours during OPD hours."
@@ -98,6 +101,11 @@ export default function Home() {
   const [formStatus, setFormStatus] = useState(null); // null | 'success' | 'error'
 async function handleSubmit(e) {
   e.preventDefault();
+  const token = getToken();
+if (!token) {
+  router.push('/login?next=/');
+  return;
+}
 
   const form = e.target;
   const fullName = form.fname.value.trim();
@@ -112,6 +120,7 @@ async function handleSubmit(e) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           fullName,
