@@ -5,11 +5,14 @@ import { subscribeToPush } from '../../lib/push';
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 // Converts a 24-hour "HH:MM" time string (from <input type="time">) into a
-// 12-hour "h:MM AM/PM" string for display.
+// 12-hour "h:MM AM/PM" string for display. Older appointments may already
+// have AM/PM saved in the value — in that case, leave it as-is.
 function formatTime12Hour(time24) {
   if (!time24) return '';
+  if (/am|pm/i.test(time24)) return time24; // already has AM/PM, don't reformat
   const [hours, minutes] = time24.split(':');
   const h = parseInt(hours, 10);
+  if (isNaN(h)) return time24;
   const ampm = h >= 12 ? 'PM' : 'AM';
   const hour12 = h % 12 === 0 ? 12 : h % 12;
   return `${hour12}:${minutes} ${ampm}`;
