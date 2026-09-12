@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react';
 import { subscribeToPush } from '../../lib/push';
 const API = process.env.NEXT_PUBLIC_API_URL;
 
+// Converts a 24-hour "HH:MM" time string (from <input type="time">) into a
+// 12-hour "h:MM AM/PM" string for display.
+function formatTime12Hour(time24) {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':');
+  const h = parseInt(hours, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${minutes} ${ampm}`;
+}
+
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState('');
   const [authed, setAuthed] = useState(false);
@@ -302,7 +313,7 @@ export default function AdminPage() {
                 >
                   {a.appointmentDate && a.appointmentTime ? (
                     <p style={{ margin: '0 0 8px', color: colors.forest, fontSize: 14, fontWeight: 600 }}>
-                      📅 Scheduled: {a.appointmentDate} at {a.appointmentTime}
+                      📅 Scheduled: {a.appointmentDate} at {formatTime12Hour(a.appointmentTime)}
                     </p>
                   ) : (
                     <p style={{ margin: '0 0 8px', color: colors.inkSoft, fontSize: 13 }}>
