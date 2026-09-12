@@ -192,7 +192,19 @@ export default function Home() {
             <a href="#process" onClick={() => setNavOpen(false)}>Appointments</a>
             <a href="#reviews" onClick={() => setNavOpen(false)}>Parents Say</a>
             <a href="/my-appointments" onClick={() => setNavOpen(false)}>My Appointments</a>
-            <a href="#contact" className="navcta" onClick={() => setNavOpen(false)}>Book a Visit</a>
+            <a
+  href="#contact"
+  className="navcta"
+  onClick={(e) => {
+    setNavOpen(false);
+    if (!getToken()) {
+      e.preventDefault();
+      router.push('/login?next=/#contact');
+    }
+  }}
+>
+  Book a Visit
+</a>
           </div>
         </nav>
       </header>

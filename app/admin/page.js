@@ -10,9 +10,9 @@ export default function AdminPage() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [scheduleInputs, setScheduleInputs] = useState({}); // { [id]: { date, time } }
+  const [schedulingId, setSchedulingId] = useState(null);
 
-  // Remember the key for this browser tab session, so refreshing the
-  // page doesn't force you to log in again.
   useEffect(() => {
     const saved = sessionStorage.getItem('nanCareAdminKey');
     if (saved) {
@@ -52,14 +52,14 @@ export default function AdminPage() {
     }
   }
 
- function handleLogin(e) {
+  function handleLogin(e) {
     e.preventDefault();
     if (!adminKey.trim()) return;
     sessionStorage.setItem('nanCareAdminKey', adminKey.trim());
     setAuthed(true);
     subscribeToPush(null, true).catch((err) => {
-  console.error('Admin push subscribe failed:', err);
-}); // NEW — subscribe this browser as admin
+      console.error('Admin push subscribe failed:', err);
+    });
   }
 
   function handleLogout() {
@@ -90,7 +90,48 @@ export default function AdminPage() {
     }
   }
 
-  // ---------- Styles (kept inline so this page doesn't depend on globals.css) ----------
+  function handleScheduleInputChange(id, field, value) {
+    setScheduleInputs((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], [field]: value },
+    }));
+  }
+
+  async function confirmSchedule(id) {
+    const input = scheduleInputs[id] || {};
+    if (!input.date || !input.time) {
+      setError('Please enter both date and time before confirming.');
+      return;
+    }
+
+    setSchedulingId(id);
+    setError('');
+    try {
+      const res = await fetch(`${API}/api/appointments/${id}/schedule`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey,
+        },
+        body: JSON.stringify({
+          appointmentDate: input.date,
+          appointmentTime: input.time,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to schedule appointment');
+
+      setAppointments((prev) =>
+        prev.map((a) => (a._id === data.appointment._id ? data.appointment : a))
+      );
+    } catch (err) {
+      setError(err.message || 'Failed to schedule appointment');
+    } finally {
+      setSchedulingId(null);
+    }
+  }
+
+  // ---------- Styles ----------
   const colors = {
     forest: '#24443B',
     gold: '#C89B3C',
@@ -197,6 +238,21 @@ export default function AdminPage() {
                   >
                     {a.status}
                   </span>
+                  {a.paymentStatus === 'paid' && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: colors.forest,
+                        border: `1px solid ${colors.forest}`,
+                        padding: '2px 10px',
+                        borderRadius: 999,
+                      }}
+                    >
+                      PAID
+                    </span>
+                  )}
                 </div>
                 <span style={{ color: colors.inkSoft, fontSize: 13 }}>
                   {new Date(a.createdAt).toLocaleString()}
@@ -234,6 +290,62 @@ export default function AdminPage() {
                     </button>
                   ))}
               </div>
+
+              {/* Scheduling section — only for paid appointments */}
+              {a.paymentStatus === 'paid' && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 14,
+                    borderTop: `1px dashed ${colors.line}`,
+                  }}
+                >
+                  {a.appointmentDate && a.appointmentTime ? (
+                    <p style={{ margin: '0 0 8px', color: colors.forest, fontSize: 14, fontWeight: 600 }}>
+                      📅 Scheduled: {a.appointmentDate} at {a.appointmentTime}
+                    </p>
+                  ) : (
+                    <p style={{ margin: '0 0 8px', color: colors.inkSoft, fontSize: 13 }}>
+                      Not scheduled yet.
+                    </p>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input
+                      type="date"
+                      value={scheduleInputs[a._id]?.date || a.appointmentDate || ''}
+                      onChange={(e) => handleScheduleInputChange(a._id, 'date', e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: 6, border: `1px solid ${colors.line}`, fontSize: 13 }}
+                    />
+                    <input
+                      type="time"
+                      value={scheduleInputs[a._id]?.time || ''}
+                      onChange={(e) => handleScheduleInputChange(a._id, 'time', e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: 6, border: `1px solid ${colors.line}`, fontSize: 13 }}
+                    />
+                    <button
+                      onClick={() => confirmSchedule(a._id)}
+                      disabled={schedulingId === a._id}
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: 13,
+                        borderRadius: 6,
+                        border: 'none',
+                        background: colors.forest,
+                        color: colors.white,
+                        cursor: 'pointer',
+                        opacity: schedulingId === a._id ? 0.6 : 1,
+                      }}
+                    >
+                      {schedulingId === a._id
+                        ? 'Saving...'
+                        : a.appointmentDate
+                        ? 'Update Schedule'
+                        : 'Confirm Schedule'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
