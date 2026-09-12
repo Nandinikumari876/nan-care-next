@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { subscribeToPush } from '../../lib/push';
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-// Converts a 24-hour "HH:MM" time string (from <input type="time">) into a
-// 12-hour "h:MM AM/PM" string for display. Older appointments may already
-// have AM/PM saved in the value — in that case, leave it as-is.
+// Converts a 24-hour "HH:MM" time string into a 12-hour "h:MM AM/PM" string
+// for display. Older appointments may already have AM/PM saved in the value
+// — in that case, leave it as-is.
 function formatTime12Hour(time24) {
   if (!time24) return '';
   if (/am|pm/i.test(time24)) return time24; // already has AM/PM, don't reformat
@@ -17,6 +17,34 @@ function formatTime12Hour(time24) {
   const hour12 = h % 12 === 0 ? 12 : h % 12;
   return `${hour12}:${minutes} ${ampm}`;
 }
+
+// Splits a 24-hour "HH:MM" string into { hour12, minute, period } for the
+// hour/minute/AM-PM dropdown picker.
+function parseTimeParts(time24) {
+  if (!time24 || !/^\d{1,2}:\d{2}$/.test(time24)) {
+    return { hour12: '', minute: '', period: '' };
+  }
+  const [hStr, mStr] = time24.split(':');
+  const h = parseInt(hStr, 10);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return { hour12: String(hour12), minute: mStr, period };
+}
+
+// Builds a 24-hour "HH:MM" string from separate hour (1-12) / minute / AM-PM picks.
+function buildTime24(hour12, minute, period) {
+  if (!hour12 || minute === '' || minute === undefined || !period) return '';
+  let h = parseInt(hour12, 10);
+  if (period === 'AM') {
+    if (h === 12) h = 0;
+  } else {
+    if (h !== 12) h += 12;
+  }
+  return `${String(h).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1); // 1-12
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => i); // 0-59
 
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState('');
@@ -105,10 +133,22 @@ export default function AdminPage() {
   }
 
   function handleScheduleInputChange(id, field, value) {
-    setScheduleInputs((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], [field]: value },
-    }));
+    setScheduleInputs((prev) => {
+      const current = prev[id] || {};
+      const next = { ...current, [field]: value };
+
+      // Whenever hour, minute, or period changes, recompute the combined
+      // 24-hour time string so it stays in sync with what's sent to the API.
+      if (field === 'hour12' || field === 'minute' || field === 'period') {
+        next.time = buildTime24(
+          field === 'hour12' ? value : next.hour12,
+          field === 'minute' ? value : next.minute,
+          field === 'period' ? value : next.period
+        );
+      }
+
+      return { ...prev, [id]: next };
+    });
   }
 
   async function confirmSchedule(id) {
@@ -331,12 +371,49 @@ export default function AdminPage() {
                       onChange={(e) => handleScheduleInputChange(a._id, 'date', e.target.value)}
                       style={{ padding: '6px 10px', borderRadius: 6, border: `1px solid ${colors.line}`, fontSize: 13 }}
                     />
-                    <input
-                      type="time"
-                      value={scheduleInputs[a._id]?.time || ''}
-                      onChange={(e) => handleScheduleInputChange(a._id, 'time', e.target.value)}
-                      style={{ padding: '6px 10px', borderRadius: 6, border: `1px solid ${colors.line}`, fontSize: 13 }}
-                    />
+                    {(() => {
+                      // Seed the dropdowns from any existing saved time the first time this renders.
+                      const existing =
+                        scheduleInputs[a._id]?.hour12 !== undefined
+                          ? scheduleInputs[a._id]
+                          : parseTimeParts(a.appointmentTime);
+                      const hour12 = scheduleInputs[a._id]?.hour12 ?? existing.hour12 ?? '';
+                      const minute = scheduleInputs[a._id]?.minute ?? existing.minute ?? '';
+                      const period = scheduleInputs[a._id]?.period ?? existing.period ?? '';
+                      return (
+                        <>
+                          <select
+                            value={hour12}
+                            onChange={(e) => handleScheduleInputChange(a._id, 'hour12', e.target.value)}
+                            style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${colors.line}`, fontSize: 13 }}
+                          >
+                            <option value="">HH</option>
+                            {HOUR_OPTIONS.map((h) => (
+                              <option key={h} value={h}>{h}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={minute}
+                            onChange={(e) => handleScheduleInputChange(a._id, 'minute', e.target.value)}
+                            style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${colors.line}`, fontSize: 13 }}
+                          >
+                            <option value="">MM</option>
+                            {MINUTE_OPTIONS.map((m) => (
+                              <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={period}
+                            onChange={(e) => handleScheduleInputChange(a._id, 'period', e.target.value)}
+                            style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${colors.line}`, fontSize: 13, fontWeight: 600 }}
+                          >
+                            <option value="">AM/PM</option>
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
+                          </select>
+                        </>
+                      );
+                    })()}
                     <button
                       onClick={() => confirmSchedule(a._id)}
                       disabled={schedulingId === a._id}
