@@ -99,64 +99,65 @@ export default function Home() {
     "We'll confirm your slot by phone, usually within a few hours during OPD hours."
   );
   const [formStatus, setFormStatus] = useState(null); // null | 'success' | 'error'
-async function handleSubmit(e) {
-  e.preventDefault();
-  const token = getToken();
-if (!token) {
-  router.push('/login?next=/');
-  return;
-}
 
-  const form = e.target;
-  const fullName = form.fname.value.trim();
-  const phone = form.phone.value.trim();
-  const department = form.dept.value;
-  const message = form.msg.value.trim();
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) {
+      router.push('/login?next=/');
+      return;
+    }
 
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/appointments`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fullName,
-          phone,
-          department,
-          message,
-        }),
+    const form = e.target;
+    const fullName = form.fname.value.trim();
+    const phone = form.phone.value.trim();
+    const department = form.dept.value;
+    const message = form.msg.value.trim();
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/appointments`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            fullName,
+            phone,
+            department,
+            message,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to book appointment');
       }
-    );
 
-    const data = await response.json();
+      setFormStatus('success');
+      setFormNote(
+        'Appointment request received. Our desk will call you shortly to confirm your slot.'
+      );
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to book appointment');
+      if (data.appointment && data.appointment._id) {
+        subscribeToPush(data.appointment._id);
+      }
+
+      form.reset();
+    } catch (error) {
+      console.error('Appointment booking error:', error);
+
+      setFormStatus('error');
+      setFormNote(
+        'Sorry, we could not submit your appointment. Please try again.'
+      );
     }
-
-    setFormStatus('success');
-    setFormNote(
-      'Appointment request received. Our desk will call you shortly to confirm your slot.'
-    );
-
-    // backend response se appointment id nikal ke push subscribe karo
-    if (data.appointment && data.appointment._id) {
-      subscribeToPush(data.appointment._id);
-    }
-
-    form.reset();
-  } catch (error) {
-    console.error('Appointment booking error:', error);
-
-    setFormStatus('error');
-    setFormNote(
-      'Sorry, we could not submit your appointment. Please try again.'
-    );
   }
-}
+
   return (
     <>
       <div className="topstrip">
@@ -190,6 +191,7 @@ if (!token) {
             <a href="#doctors" onClick={() => setNavOpen(false)}>Doctors</a>
             <a href="#process" onClick={() => setNavOpen(false)}>Appointments</a>
             <a href="#reviews" onClick={() => setNavOpen(false)}>Parents Say</a>
+            <a href="/my-appointments" onClick={() => setNavOpen(false)}>My Appointments</a>
             <a href="#contact" className="navcta" onClick={() => setNavOpen(false)}>Book a Visit</a>
           </div>
         </nav>
@@ -212,7 +214,18 @@ if (!token) {
                 elsewhere at the moment it matters most.
               </p>
               <div className="ctas">
-                <a href="#contact" className="btn btn-primary">Book an appointment</a>
+                <a
+                  href="#contact"
+                  className="btn btn-primary"
+                  onClick={(e) => {
+                    if (!getToken()) {
+                      e.preventDefault();
+                      router.push('/login?next=/#contact');
+                    }
+                  }}
+                >
+                  Book an appointment
+                </a>
                 <a href="tel:+919829000111" className="btn btn-ghost">Emergency line</a>
               </div>
             </div>
