@@ -197,11 +197,17 @@ export default function MyAppointmentsPage() {
                   </p>
                 )}
 
-                <p style={{ margin: '4px 0', color: '#4B564F', fontSize: 13 }}>
-                  Requested on {new Date(a.createdAt).toLocaleString()}
-                </p>
+                              <p style={{ margin: '4px 0', color: '#4B564F', fontSize: 13 }}>
+                Requested on {new Date(a.createdAt).toLocaleString()}
+              </p>
 
-                {a.status === 'confirmed' && a.paymentStatus !== 'paid' && (
+              {a.appointmentDate && a.appointmentTime && (
+                <p style={{ margin: '6px 0', color: '#24443B', fontSize: 14, fontWeight: 600 }}>
+                  📅 Your appointment: {a.appointmentDate} at {a.appointmentTime}
+                </p>
+              )}
+
+              {a.status === 'confirmed' && a.paymentStatus !== 'paid' && (
                   <button
                     style={{
                       marginTop: 10,
